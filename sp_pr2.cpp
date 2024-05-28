@@ -11,6 +11,8 @@ LPCTSTR g_lpszAplicationTitle = TEXT("Главное окно приложения. Програмист <Поляк
 // Выводится в сообщении о закрытии окна
 LPCTSTR g_lpszDestroyMessage = TEXT("Поступило сообщение WM_DESTROY, из обработчика которого\
 	и выполнен данный вывод. Сообщение поступило в связи с разрушение мокна приложения");
+//Глобальная переменная для хранения дискриптера приложения.
+HINSTANCE g_hInst;
 
 int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmdLine,
 	int nCmdShow)
@@ -19,6 +21,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 	MSG msg;
 	HWND hWnd;
 	HBRUSH hbr = CreateSolidBrush(RGB(0, 255, 0));
+	g_hInst = hInstance;
 
 	memset(&wc, 0, sizeof(WNDCLASSEX));
 	wc.cbSize = sizeof(WNDCLASSEX);
@@ -63,6 +66,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 	UpdateWindow(hWnd);
 
 	while (GetMessage(&msg, NULL, 0, 0)) {
+		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
 	return msg.wParam;
@@ -79,24 +83,39 @@ LRESULT CALLBACK Pr2_WndProc(HWND hWnd, UINT msg,
 	TCHAR messageFormat[200];
 	wsprintf(messageFormat, lpszMessage);
 
-	int xPos = LOWORD(lParam); // Получаем x-координату
-	int yPos = HIWORD(lParam); // Получаем y-координату
-	RECT rt{ xPos, yPos, xPos + 200, yPos + 50 }; // Создаем прямоугольник для текста;
+	int xPos; 
+	int yPos;
+	RECT rt; 
 
 	PAINTSTRUCT ps;
 	TCHAR messageWM_PAINT[200];
-	wsprintf(messageWM_PAINT, TEXT("Обработка сообщения WM_PAINT.Это соообщение окно \
-		получает после того, как оно было закрыто другим окном изатем открыто."));
+	wsprintf(messageWM_PAINT, TEXT("Обработка сообщения WM_PAINT."));
+
+	static HWND hButtonSave;
+	static HWND hButtonAdd;
+	static HWND hButtonExit;
+	static HWND hEdit;
+	static HWND hListBox;
+
+	static TCHAR pszTextBuff[500];
+
+	#define IDC_BTN_SAVE 150
+	#define IDC_BTN_ADD 151
+	#define IDC_EDIT1 152
+	#define IDC_LISTBOX 153
 
 
 	switch (msg) {
 		case WM_DESTROY:
-			//MessageBox(NULL, g_lpszDestroyMessage, TEXT("Окно закрыто"), MB_OK);
+			MessageBox(NULL, g_lpszDestroyMessage, TEXT("Окно закрыто"), MB_OK);
 			PostQuitMessage(5);
 			break;
 
 		// Вывод сообщения при  клике левой кнопкой мыши по координатам мыши
-		case WM_LBUTTONDOWN:	
+		case WM_LBUTTONDOWN:
+			xPos = LOWORD(lParam);
+			yPos = HIWORD(lParam);
+			rt = { xPos, yPos, xPos + 200, yPos + 50 };
 			hdc = GetDC(hWnd);
 			DrawText(hdc, messageFormat, lstrlen(messageFormat), &rt, DT_LEFT | DT_TOP | DT_WORDBREAK);
 			ReleaseDC(hWnd, hdc);
@@ -106,12 +125,89 @@ LRESULT CALLBACK Pr2_WndProc(HWND hWnd, UINT msg,
 			hdc = BeginPaint(hWnd, &ps);
 			TextOut(hdc, 20, 100, messageWM_PAINT, lstrlen(messageWM_PAINT));
 			EndPaint(hWnd, &ps);
+			break;
 		
 		case WM_CREATE:
 			MessageBox(hWnd, 
 				TEXT("Выполняется обработка WM_CREATE"), TEXT("Обработка WM_CREATE")
 				,MB_OK);
+
+			
+				hEdit = CreateWindowEx(0L, _T("Edit"), _T("Редактор"),
+					WS_CHILD | WS_BORDER | WS_VISIBLE | ES_LEFT | ES_AUTOHSCROLL,
+					20, 50, 160, 40, hWnd, 
+					(HMENU)IDC_EDIT1, 
+					g_hInst, NULL);
+				if (hEdit == 0) return -1;
+
+				hListBox = CreateWindowEx(0L, _T("ListBox"), _T("Список"),
+					WS_CHILD | WS_BORDER | WS_VISIBLE, 
+					200, 50, 160, 180, hWnd,
+					(HMENU)IDC_LISTBOX, g_hInst, NULL);
+				if (hListBox == 0) return -1;
+
+				hButtonSave = CreateWindowEx(0L, _T("Button"), _T("В буфер"),
+					WS_CHILD | WS_BORDER | WS_VISIBLE, 
+					20, 240, 80, 24, hWnd,
+					(HMENU)IDC_BTN_SAVE, g_hInst, NULL);
+				if (hButtonSave == 0) return -1;
+
+				hButtonAdd = CreateWindowEx(0L, _T("Button"), _T("В список"),
+					WS_CHILD | WS_BORDER | WS_VISIBLE, 
+					120, 240, 80, 24, hWnd,
+					(HMENU)IDC_BTN_ADD, g_hInst, NULL);
+				if (hButtonAdd == 0) return -1;
+
+				hButtonExit = CreateWindowEx(0L, _T("Button"), _T("Выход"),
+					WS_CHILD | WS_BORDER | WS_VISIBLE, 220, 240, 80, 24, hWnd,
+					(HMENU)IDCANCEL, g_hInst, NULL);
+				if (hButtonExit == 0) return -1;
+			
 			return 0;
+			break;
+
+		case WM_COMMAND:
+			int wmId, wmEvent;
+			wmEvent = HIWORD(wParam); // Код события
+			wmId = LOWORD(wParam); // Идентификатор команды меню или горячей клавиши
+
+			switch (wmId) {
+			case IDC_BTN_SAVE: {
+				int cch = SendMessage(hEdit, WM_GETTEXT, (WPARAM)500, (LPARAM)pszTextBuff);
+				if (cch == 0)
+				{
+					MessageBox(hWnd, _T("Введите текст"), _T("Читаем Edit"), MB_OK);
+				}
+				else
+				{
+					TCHAR Buff1[500] = { 0 };
+					SYSTEMTIME st;
+					GetSystemTime(&st);
+					wsprintf(Buff1, TEXT("Время : %d ч %d мин %d сек\n"), st.wHour, st.wMinute, st.wSecond);
+					lstrcat(Buff1, __TEXT("Текст в памяти: "));
+					lstrcat(Buff1, pszTextBuff);
+					MessageBox(hWnd, Buff1, TEXT("Содержимое буфера"), MB_OK);
+					break;
+				}
+				
+			}
+			
+			case IDC_BTN_ADD: {
+				int ind = SendMessage(hListBox, LB_ADDSTRING, (WPARAM)0, (LPARAM)pszTextBuff);
+				if (ind == LB_ERR)
+					MessageBox(hWnd, TEXT("Ошибка в списке"), TEXT(""), MB_OK);
+				break;
+			}
+
+			case IDCANCEL:
+				DestroyWindow(hWnd);
+				break;
+
+			default:
+				return DefWindowProc(hWnd, msg, wParam, lParam);
+			}
+
+			break;
 		default:
 			return DefWindowProc(hWnd, msg, wParam, lParam);
 	}
