@@ -94,16 +94,24 @@ LRESULT CALLBACK Pr2_WndProc(HWND hWnd, UINT msg,
 			//MessageBox(NULL, g_lpszDestroyMessage, TEXT("Окно закрыто"), MB_OK);
 			PostQuitMessage(5);
 			break;
+
 		// Вывод сообщения при  клике левой кнопкой мыши по координатам мыши
 		case WM_LBUTTONDOWN:	
 			hdc = GetDC(hWnd);
 			DrawText(hdc, messageFormat, lstrlen(messageFormat), &rt, DT_LEFT | DT_TOP | DT_WORDBREAK);
 			ReleaseDC(hWnd, hdc);
 			break;
+
 		case WM_PAINT:
 			hdc = BeginPaint(hWnd, &ps);
 			TextOut(hdc, 20, 100, messageWM_PAINT, lstrlen(messageWM_PAINT));
 			EndPaint(hWnd, &ps);
+		
+		case WM_CREATE:
+			MessageBox(hWnd, 
+				TEXT("Выполняется обработка WM_CREATE"), TEXT("Обработка WM_CREATE")
+				,MB_OK);
+			return 0;
 		default:
 			return DefWindowProc(hWnd, msg, wParam, lParam);
 	}
