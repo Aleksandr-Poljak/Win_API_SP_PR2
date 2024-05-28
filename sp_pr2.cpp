@@ -83,6 +83,12 @@ LRESULT CALLBACK Pr2_WndProc(HWND hWnd, UINT msg,
 	int yPos = HIWORD(lParam); // Получаем y-координату
 	RECT rt{ xPos, yPos, xPos + 200, yPos + 50 }; // Создаем прямоугольник для текста;
 
+	PAINTSTRUCT ps;
+	TCHAR messageWM_PAINT[200];
+	wsprintf(messageWM_PAINT, TEXT("Обработка сообщения WM_PAINT.Это соообщение окно \
+		получает после того, как оно было закрыто другим окном изатем открыто."));
+
+
 	switch (msg) {
 		case WM_DESTROY:
 			//MessageBox(NULL, g_lpszDestroyMessage, TEXT("Окно закрыто"), MB_OK);
@@ -94,6 +100,10 @@ LRESULT CALLBACK Pr2_WndProc(HWND hWnd, UINT msg,
 			DrawText(hdc, messageFormat, lstrlen(messageFormat), &rt, DT_LEFT | DT_TOP | DT_WORDBREAK);
 			ReleaseDC(hWnd, hdc);
 			break;
+		case WM_PAINT:
+			hdc = BeginPaint(hWnd, &ps);
+			TextOut(hdc, 20, 100, messageWM_PAINT, lstrlen(messageWM_PAINT));
+			EndPaint(hWnd, &ps);
 		default:
 			return DefWindowProc(hWnd, msg, wParam, lParam);
 	}
