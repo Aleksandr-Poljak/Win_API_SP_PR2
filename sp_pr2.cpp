@@ -29,7 +29,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 	wc.lpfnWndProc = Pr2_WndProc;
 	wc.style = CS_HREDRAW | CS_VREDRAW;
 	wc.hInstance = hInstance;
-	wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+	wc.hIcon = LoadIcon(NULL, IDI_ASTERISK);
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wc.hbrBackground = hbr;
 	wc.lpszMenuName = NULL;
@@ -45,7 +45,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCm
 
 	hWnd = CreateWindowEx(NULL, g_lpszClassName,
 		g_lpszAplicationTitle,
-		WS_OVERLAPPEDWINDOW,
+		WS_OVERLAPPEDWINDOW & ~WS_MAXIMIZEBOX,
 		200, // X положение (X)
 		200, // Y положение (Y)
 		450, // Ширина (nWidth)
@@ -91,11 +91,11 @@ LRESULT CALLBACK Pr2_WndProc(HWND hWnd, UINT msg,
 	TCHAR messageWM_PAINT[200];
 	wsprintf(messageWM_PAINT, TEXT("Обработка сообщения WM_PAINT."));
 
-	static HWND hButtonSave;
-	static HWND hButtonAdd;
-	static HWND hButtonExit;
-	static HWND hEdit;
-	static HWND hListBox;
+	static HWND hButtonSave; // Кнопка в буфер
+	static HWND hButtonAdd; // Кнопка в список
+	static HWND hButtonExit; // кнопка Выход
+	static HWND hEdit; //Редактор
+	static HWND hListBox; // Список
 
 	static TCHAR pszTextBuff[500];
 
